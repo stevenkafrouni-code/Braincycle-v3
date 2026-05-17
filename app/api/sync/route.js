@@ -11,7 +11,19 @@ export async function POST(request) {
     let meetings = [];
     if (calendarRes.ok) { const d = await calendarRes.json(); meetings = (d.items||[]).map(e => ({ id: e.id, title: e.summary||"Untitled", time: e.start?.dateTime ? new Date(e.start.dateTime).toLocaleTimeString("en-AU",{hour:"2-digit",minute:"2-digit",hour12:false}) : "All day", endTime: e.end?.dateTime ? new Date(e.end.dateTime).toLocaleTimeString("en-AU",{hour:"2-digit",minute:"2-digit",hour12:false}) : "", location: e.location||"" })); }
     let emails = [];
-    if (gmailRes.ok) { const gd = await gmailRes.json(); const ids = (gd.messages||[]).slice(0,8); const details = await Promise.all(ids.map(m => fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/"+m.id+"?format=metadata&metadataHeaders=From&metadataHeaders=Subject", { headers: { Authorization: "Bearer "+accessToken } }).then(r=>r.json()))); emails = details.map(msg => { const headers = msg.payload?.headers||[]; const from = headers.find(h=>h.name==="From")?.value||""; const subject = headers.find(h=>h.name==="Subject")?.value||"(no subject)"; const fromName = from.replace(/<.*>/,"").trim().replace(/"/g,"")||from.split("@")[0]; const fromEmail = (from.match(/<(.+)>/)||[,from])[1]; const snippet = msg.snippet||""; const isUrgent = /urgent|asap|deadline|overdue|payment|invoice|legal|sign|contract/i.test(subject+snippet); return { id: msg.id, from: fromName, email: fromEmail, subject, preview: snippet.slice(0,100), priority: isUrgent?"high":"medium", suggestedAction:"reply", draftReply:"", reason: isUrgent?"Flagged urgent":"Unread email", actioned:false }; }); }
+    if (gmailRes.ok) { const gd = await gmailRes.json(); const ids = (gd.messages||[]).slice(0,8); const details = await Promise.all(ids.map(m => fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/"+m.id+"?format=full", { headers: { Authorization: "Bearer "+accessToken } }).then(r=>r.json()))); emails = details.map(msg => { const headers = msg.payload?.headers||[]; const from = headers.find(h=>h.name==="From")?.value||""; const subject = headers.find(h=>h.name==="Subject")?.value||"(no subject)"; const fromName = from.replace(/<.*>/,"").trim().replace(/"/g,"")||from.split("@")[0]; const fromEmail = (from.match(/<(.+)>/)||[,from])[1]; const snippet = msg.snippet||"";
+        const getBody = (payload) => {
+          if (!payload) return "";
+          if (payload.body?.data) return Buffer.from(payload.body.data, 'base64').toString('utf-8').replace(/<[^>]*>/g,'').trim();
+          if (payload.parts) {
+            for (const part of payload.parts) {
+              if (part.mimeType === 'text/plain' && part.body?.data) return Buffer.from(part.body.data, 'base64').toString('utf-8').trim();
+              if (part.parts) { const nested = getBody(part); if (nested) return nested; }
+            }
+          }
+          return "";
+        };
+        const fullBody = getBody(msg.payload) || snippet; const isUrgent = /urgent|asap|deadline|overdue|payment|invoice|legal|sign|contract/i.test(subject+snippet); return { id: msg.id, from: fromName, email: fromEmail, subject, preview: snippet.slice(0,100), body: fullBody, priority: isUrgent?"high":"medium", suggestedAction:"reply", draftReply:"", reason: isUrgent?"Flagged urgent":"Unread email", actioned:false }; }); }
     let tasks = [];
     if (tasksListRes.ok) { const ld = await tasksListRes.json(); const listId = ld.items?.[0]?.id; if (listId) { const tr = await fetch("https://tasks.googleapis.com/tasks/v1/lists/"+listId+"/tasks?showCompleted=false&maxResults=10", { headers: { Authorization: "Bearer "+accessToken } }); if (tr.ok) { const td = await tr.json(); tasks = (td.items||[]).map(t => ({ id: t.id, text: t.title, priority:"p2", due:"today", done:false, notes:t.notes||"" })); } } }
     return NextResponse.json({ meetings, emails, tasks });

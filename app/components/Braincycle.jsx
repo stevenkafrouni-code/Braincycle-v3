@@ -372,6 +372,7 @@ Return ONLY valid JSON:
             <div style={{fontSize:9.5,fontWeight:600,letterSpacing:".14em",color:C.inkRed,textTransform:"uppercase",marginBottom:8}}>Email Action</div>
             <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:24,fontWeight:500,marginBottom:3}}>{emailModal.from}</div>
             <div style={{fontSize:13.5,color:C.inkMid,marginBottom:14}}>{emailModal.subject}</div>
+            <div style={{background:"rgba(255,255,255,0.6)",border:`1px solid ${C.border}`,borderRadius:9,padding:"12px 16px",marginBottom:14,maxHeight:180,overflowY:"auto",fontSize:13,lineHeight:1.7,color:C.ink,fontFamily:"'DM Sans',sans-serif",whiteSpace:"pre-wrap"}}>{emailModal.body||emailModal.preview}</div>
             <div style={{background:C.greenSoft,borderRadius:9,padding:"12px 16px",marginBottom:16}}>
               <div style={{fontSize:9,fontWeight:600,letterSpacing:".1em",color:C.greenMid,textTransform:"uppercase",marginBottom:4}}>Braincycle suggests</div>
               <div style={{fontSize:13,color:C.ink,lineHeight:1.6}}>{emailModal.reason}</div>

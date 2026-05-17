@@ -203,7 +203,7 @@ Call Google Calendar (today's events), Gmail (important unread, VIP: ${vipSender
 Return ONLY valid JSON:
 {"meetings":[{"id":"1","time":"09:00","endTime":"10:00","title":"...","location":"..."}],"emails":[{"id":"1","from":"Name","email":"addr","subject":"...","preview":"...","priority":"high|medium","suggestedAction":"reply|flag|delete|review","draftReply":"...","reason":"..."}],"tasks":[{"id":"1","text":"...","priority":"p1|p2|p3","due":"today|overdue"}]}`;
     try {
-      const res  = await fetch("/api/chat", {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:[{role:"user",content:prompt}]})});
+      const res  = await fetch("/api/sync", {method:"POST"});
       const data = await res.json();
       const raw  = (data.content||[]).filter(x=>x.type==="text").map(x=>x.text).join("").replace(/```json|```/g,"").trim();
       const result = JSON.parse(raw);

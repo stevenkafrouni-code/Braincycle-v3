@@ -20,6 +20,37 @@ RULES: Every outgoing email needs Steven's approval. No financial/legal/landlord
 export async function POST(request) {
   try {
     const { messages } = await request.json();
+    const googleToken = request.cookies.get("google_access_token")?.value;
+
+    const body = {
+      model: "claude-sonnet-4-5",
+      max_tokens: 1500,
+      system: SYSTEM_PROMPT,
+      messages,
+    };
+
+    if (googleToken) {
+      body.mcp_servers = [
+        {
+          type: "url",
+          url: "https://gmailmcp.googleapis.com/mcp/v1",
+          name: "gmail",
+          authorization_token: googleToken,
+        },
+        {
+          type: "url",
+          url: "https://calendarmcp.googleapis.com/mcp/v1",
+          name: "calendar",
+          authorization_token: googleToken,
+        },
+        {
+          type: "url",
+          url: "https://drivemcp.googleapis.com/mcp/v1",
+          name: "drive",
+          authorization_token: googleToken,
+        },
+      ];
+    }
 
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -27,13 +58,9 @@ export async function POST(request) {
         "Content-Type": "application/json",
         "x-api-key": process.env.ANTHROPIC_API_KEY,
         "anthropic-version": "2023-06-01",
+        "anthropic-beta": "mcp-client-2025-04-04",
       },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-5",
-        max_tokens: 1500,
-        system: SYSTEM_PROMPT,
-        messages,
-      }),
+      body: JSON.stringify(body),
     });
 
     if (!response.ok) {

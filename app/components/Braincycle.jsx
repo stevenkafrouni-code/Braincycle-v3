@@ -140,6 +140,17 @@ export default function Braincycle({ googleConnected = false }) {
     if (taRef.current) { taRef.current.style.height="auto"; taRef.current.style.height=Math.min(taRef.current.scrollHeight,120)+"px"; }
   }, [chatInput]);
 
+  // ── Auto token refresh + auto sync
+  useEffect(() => {
+    if (!googleConnected) return;
+    const refreshToken = async () => { try { await fetch("/api/google/refresh", { method: "POST" }); } catch(e) {} };
+    refreshToken();
+    const refreshInterval = setInterval(refreshToken, 50 * 60 * 1000);
+    const autoSync = () => { const hour = new Date().getHours(); if (hour >= 5 && hour < 19) syncToday(); };
+    const syncInterval = setInterval(autoSync, 90 * 60 * 1000);
+    return () => { clearInterval(refreshInterval); clearInterval(syncInterval); };
+  }, [googleConnected]);
+
   // ── Load day ─────────────────────────────────────────────────────────────
   const loadDay = useCallback(async (date) => {
     try {
@@ -392,7 +403,7 @@ Return ONLY valid JSON:
             <textarea value={modalDraft} onChange={e=>setModalDraft(e.target.value)} onFocus={e=>(e.target.style.borderColor=C.greenMid)} onBlur={e=>(e.target.style.borderColor=C.border)} style={{width:"100%",height:110,padding:"12px 14px",borderRadius:9,border:`1.5px solid ${C.border}`,resize:"none",fontSize:13,lineHeight:1.65,color:C.ink,fontFamily:"'DM Sans',sans-serif",background:"rgba(255,255,255,0.7)",outline:"none",boxSizing:"border-box",marginBottom:16,transition:"border-color 0.2s"}}/>
             <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
               <button onClick={approveEmail} style={{padding:"9px 20px",background:C.green,color:"#fff",border:"none",borderRadius:9,fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}>✓ Approve & {modalTab==="forward"?"Forward":"Send"}</button>
-              <button onClick={()=>{markActioned(emailModal.id);setEmailModal(null);sendChat(`Help me think through my response to ${emailModal.from} about "${emailModal.subject}". Should I loop anyone in?`);}} style={{padding:"9px 20px",background:"transparent",color:C.ink,border:`1.5px solid ${C.border}`,borderRadius:9,fontSize:13,cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}>Discuss with Braincycle</button>
+              <button onClick={()=>{markActioned(emailModal.id);setEmailModal(null);sendChat(`I want to discuss this email from ${emailModal.from}:\n\nSubject: ${emailModal.subject}\n\nContent: ${emailModal.body||emailModal.preview}\n\nHelp me decide how to respond and whether to add it to my task list.`);}} style={{padding:"9px 20px",background:"transparent",color:C.ink,border:`1.5px solid ${C.border}`,borderRadius:9,fontSize:13,cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}>Discuss with Braincycle</button>
               <button onClick={()=>{markActioned(emailModal.id);setEmailModal(null);}} style={{padding:"9px 20px",background:"transparent",color:C.inkFaint,border:`1px solid ${C.border}`,borderRadius:9,fontSize:13,cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}>Dismiss</button>
             </div>
             <div style={{fontSize:10,color:C.inkFaint,marginTop:10}}>All emails require your approval before sending</div>

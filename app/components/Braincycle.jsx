@@ -205,12 +205,10 @@ Return ONLY valid JSON:
     try {
       const res  = await fetch("/api/sync", {method:"POST"});
       const data = await res.json();
-      const raw  = (data.content||[]).filter(x=>x.type==="text").map(x=>x.text).join("").replace(/```json|```/g,"").trim();
-      const result = JSON.parse(raw);
       const merged = {
-        meetings: result.meetings||[],
-        emails:   (result.emails||[]).map(e=>({...e,actioned:false})),
-        tasks:    dayData.tasks.length ? dayData.tasks : (result.tasks||[]).map(t=>({...t,done:false,notes:""})),
+        meetings: data.meetings||[],
+        emails:   (data.emails||[]),
+        tasks:    dayData.tasks.length ? dayData.tasks : (data.tasks||[]),
         notes:    dayData.notes||"",
       };
       setDayData(merged); await saveDay(merged);
